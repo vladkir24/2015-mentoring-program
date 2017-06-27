@@ -6,9 +6,12 @@ namespace Convestudo.Unmanaged
     {
         private static void Main(string[] args)
         {
-            var fileWriter = new FileWriter("log.txt");
 
-            fileWriter.Write("First test string");
+            using (var fileWriter = new FileWriter("c:\\logs\\log.txt"))
+            {
+                fileWriter.Write("First test string");
+            }
+            Console.WriteLine("finish");
 
             Console.ReadKey();
         }

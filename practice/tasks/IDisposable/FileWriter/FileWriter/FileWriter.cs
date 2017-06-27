@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Convestudo.Unmanaged
 {
-    public class FileWriter: IFileWriter
+    public class FileWriter: IFileWriter, IDisposable
     {
-        private readonly IntPtr _fileHandle;
+        private IntPtr _fileHandle;
 
         /// <summary>
         /// Creates file
@@ -22,6 +23,8 @@ namespace Convestudo.Unmanaged
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern IntPtr CreateFile(string lpFileName, DesiredAccess dwDesiredAccess, ShareMode dwShareMode, IntPtr lpSecurityAttributes, CreationDisposition dwCreationDisposition, FlagsAndAttributes dwFlagsAndAttributes, IntPtr hTemplateFile);
 
+
+
         /// <summary>
         /// Writes data into a file
         /// </summary>
@@ -34,10 +37,23 @@ namespace Convestudo.Unmanaged
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern bool WriteFile(IntPtr hFile, Byte[] aBuffer, UInt32 cbToWrite, ref UInt32 cbThatWereWritten, IntPtr pOverlapped);
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hObject"></param>
+        /// <returns></returns>
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern bool CloseHandle(IntPtr hObject);
+
+
         private void ThrowLastWin32Err()
         {
-            Marshal.ThrowExceptionForHR(
-             Marshal.GetHRForLastWin32Error());
+            var er = Marshal.GetHRForLastWin32Error();
+            if ((er & 0xffff) != 183 && (er & 0xffff) != 0)
+            {
+                Marshal.ThrowExceptionForHR(er);
+            }
+            
         }
 
         public FileWriter(string fileName)
@@ -59,7 +75,6 @@ namespace Convestudo.Unmanaged
             var bytes = GetBytes(str);
             uint bytesWritten = 0;
             WriteFile(_fileHandle, bytes, (uint) bytes.Length, ref bytesWritten, IntPtr.Zero);
-            //throw new System.NotImplementedException();
         }
 
         public void WriteLine(string str)
@@ -74,9 +89,33 @@ namespace Convestudo.Unmanaged
         /// <returns></returns>
         static byte[] GetBytes(string str)
         {
-            var bytes = new byte[str.Length * sizeof(char)];
-            Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
-            return bytes;
+            return Encoding.ASCII.GetBytes(str);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+               
+            }
+
+            if (_fileHandle != IntPtr.Zero)
+            {
+                CloseHandle(_fileHandle);
+                _fileHandle = IntPtr.Zero;
+            }
+
+        }
+
+        ~FileWriter()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }
