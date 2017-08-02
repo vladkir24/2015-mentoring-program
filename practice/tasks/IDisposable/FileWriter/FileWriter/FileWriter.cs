@@ -48,12 +48,15 @@ namespace Convestudo.Unmanaged
 
         private void ThrowLastWin32Err()
         {
-            var er = Marshal.GetHRForLastWin32Error();
-            if ((er & 0xffff) != 183 && (er & 0xffff) != 0)
+            int fileExistHresult   = -2147024713;  //(int) 0x800700B7;
+            int fileCreatedHresult = -2147024896;  //(int) 0x80070000;
+
+            int hResult = Marshal.GetHRForLastWin32Error();
+
+            if ( (hResult  != fileExistHresult) && (hResult != fileCreatedHresult) )
             {
-                Marshal.ThrowExceptionForHR(er);
+                Marshal.ThrowExceptionForHR(hResult);
             }
-            
         }
 
         public FileWriter(string fileName)
@@ -94,10 +97,6 @@ namespace Convestudo.Unmanaged
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-               
-            }
 
             if (_fileHandle != IntPtr.Zero)
             {
